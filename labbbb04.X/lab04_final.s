@@ -7,7 +7,7 @@
 ; Hardware:    PIC, LEDs.
 ;
 ; Creado: 06 feb, 2022
-; Última modificación: 11 feb, 2022
+; Última modificación: 18 feb, 2022
     
  PROCESSOR 16F887
  #include <xc.inc>
