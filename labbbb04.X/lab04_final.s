@@ -1,4 +1,4 @@
-; Archivo:     prelab04.S
+; Archivo:     lab04_final.S
 ; Dispositivo: PIC166F887
 ; Autor:       Alba Rodas
 ; Compilador:  pic-as (v2.30), MPLABX V5.40
@@ -31,7 +31,7 @@
 // RESET:
   reset_tmr0 macro
     banksel TMR0  
-    movlw 217	    ; VALOR = 256 - ((20ms*4Mhz)/4(256)) = 
+    movlw 217	    ; VALOR = 256 - ((20ms*4Mhz)/4(256)) = 217
     movwf TMR0	    ; ALMACENO VALORES EN TMR0
     bcf	  T0IF	    ; LIMPIO BANDERAS PARA TMR0
     endm	    ; TERMINO EL MACRO
@@ -59,17 +59,17 @@
      goto main
       
  ;-------------CONFIG. INTERRUPCIONES--------------    
- ORG 04h
+ ORG 04h    ;POSICION 0004h PARA LAS INTERRUPCIONES
  
- PUSH:
+ PUSH:			; Se guarda el 'Program Counter' en la memory
     movwf   W_TEMP	; Copio W al registro 'TEMP' 
     swapf   STATUS, w	; Swap status, se guarda en W.
     movwf   STATUS_TEMP	; Guardo el STATUS en el banco 00 del STATUS_TEMP register.
     
     // -----------------------------TÉRMINOS USADOS--------------------------  
     // w = 'working register' (accumulador).
- ISR:
-    btfsc   T0IF
+ ISR:			; RUTINA DE INTERRUPCION
+    btfsc   T0IF	; Verifico la bandera de inerrupcion del tmr0
     call    counter_tmr0
     btfsc   RBIF	; Hay salto, si la bandera de cambio de 'B' está en cero. 
 			; El RBIF bit se limpia co RESET, pero se reestablece, si hay un 'mismatch'.
@@ -77,7 +77,7 @@
     call    int_iocb	; Llamo a subrutinas de incrementar/decrementar para los push-buttons
  
  POP:
-    swapf   STATUS_TEMP, w
+    swapf   STATUS_TEMP, w  ; Hago un 'swap' de nibbles al STATUS
     movwf   STATUS	; Muevo W al registro de STATUS --> (Devuelve al banco a su esstado original)
     swapf   W_TEMP, F	; Swap W_TEMP
     swapf   W_TEMP, w	; Swap W_TEMP en W
@@ -111,37 +111,37 @@ Change Interrupt flag bit (RBIF) in the INTCON register.*/
     movf    counter, W	; MUEVO LA INFORMACIÓN DEL 'COUNTER' A 'W'
     sublw   50		; RESTO LA INFORMACION CON LO QUE HAY EN 'W' => 20ms*50reps = 1000ms
     btfsc   ZERO	; VERIFICO EL ESTADO DEL PIN 2 Y SI FUE IGUAL A 0.
-    goto    incremento_counter2
+    goto    incremento_counter2 ; Pasamos a la subrutina del aumento del contador 2 (display)
     return
 
  incremento_counter2:
-    clrf    counter
-    incf    variable_unidades
-    movf    variable_unidades, w
-    call    values
-    movwf   PORTC   
+    clrf    counter		    ; Limpio la varile de repeticiones del tmr0
+    incf    variable_unidades	    ; Aumento el contador del unidadades
+    movf    variable_unidades, w    ; Muevo el valor en el contador de unidades a 'w' y lo busco en 'values'.
+    call    values		    ; Busco el valor de 'variable_unidades' en 'values'
+    movwf   PORTC		    ; Guardo el 'char' en 'variable_unidades'
  
-    movf    variable_unidades, w
-    sublw   10
-    btfsc   ZERO
-    call    incremento_counter_decenas
-    movf    variable_decenas, w
-    call    values
-    movwf   PORTD
+    movf    variable_unidades, w	; Paso el valor de 'variable_unidades' a 'w'
+    sublw   10				; Verifico si el contador mencionado llego a 10s
+    btfsc   ZERO			; VERIFICO CON 'ZERO', si el resultado de mi operacion fue '0'
+    call    incremento_counter_decenas	; Llamo a mi subrutina de incremento del 'counter de decenas'
+    movf    variable_decenas, w		; Paso el valor de mi contador de decenas a 'w'
+    call    values			; Busco el 'char' = 'caracter' de mi variable 'contador' en 'values'
+    movwf   PORTD			; Guardo el 'char' en mi contador de decenas y lo muestro
     
     return
     
  incremento_counter_decenas:
-    clrf    variable_unidades
-    incf    variable_decenas
-    movf    variable_unidades, w
-    call    values
-    movwf   PORTC
+    clrf    variable_unidades	    ; Le doy un reinicio a mi contador de unidades = 'variable_unidades'
+    incf    variable_decenas	    ; Incremento el condaro de unidades mencionado
+    movf    variable_unidades, w    ; Paso el valor de mi contador de unidades a 'w', para buscar el 'char' en 'values'
+    call    values		    ; Busco el 'char' obtenido de mi contador de unidades
+    movwf   PORTC		    ; Guardo el 'char'  de unidades
     
-    movf    variable_decenas, w
-    sublw   6
-    btfsc   ZERO
-    clrf    variable_decenas
+    movf    variable_decenas, w	    ; Paso el valor del contador de decenas a 'w'
+    sublw   6			    ; Verifico que el contador de decenas no tenga un valor igual a '6'
+    btfsc   ZERO		    ; Verifico si la operacion anterior no fue '0'
+    clrf    variable_decenas	    ; Reinicio mi contador de decenas
     return
  
  ;------------------------------- TABLA DE VALORES ----------------------------------   
@@ -170,13 +170,12 @@ values:
     retlw   01111001B	; VALOR = E
     retlw   01110001B	; VALOR = F
     
-//PUEDA QUE NECESITE AGREGAR MÁS
  ;-------------configuracion------------------
- main://////////////////////////////////////////////
+ main:
     call config_ins_outs
     call config_reloj
     call config_tmr0
-    call enable_ints
+    call enable_interruptions
     call config_iocrb
 
  ;-------------loop principal-----------------
@@ -187,12 +186,12 @@ values:
  
  ;-------------------------- configurar io -------------------------------
  config_ins_outs:	; INPUTS/OUTPUTS DIGITALES/ANALÓGICOS
-    banksel ANSEL	;Nos movemos al banco 03
+    banksel ANSEL	;Nos movemos de banco
     clrf    ANSEL	;Se definen I/O
     clrf    ANSELH	;LAS COLOCAMOS EN 0, PARA QUE SEAN SALIDAS DIGITALES
     
     //SALIDA DIGITAL - BANCO A - PRIMER CONTADOR --> PRELAB
-    banksel TRISA
+    banksel TRISA	    ; Me muevo al PORTA
     
     bcf	TRISA, 0	    ; DEFINO QUE LOS PINES DEL 0 - 3, SERÁN SALIDAS DIGITALES 
     bcf	TRISA, 1
@@ -200,27 +199,27 @@ values:
     bcf	TRISA, 3
     
     //PORTB Tri-State Control bit - ENTRADA DIGITAL - PUSH BUTTONS
-    banksel TRISB
+    banksel TRISB	    ; Me cambio de banco al PORTB
     bsf	    TRISB, UP	    ; PORTB en 'bsf' = SE CONFIGURA EL PORTB COMO ENTRADA 'tri-estado'. 
-    bsf	    TRISB, DOWN	    ; PIN 7 EN PORTB COMO ENTRADA PARA PUSHBUTTON
+    bsf	    TRISB, DOWN	    ; PIN 2 EN PORTB COMO ENTRADA PARA PUSHBUTTON
     
     banksel OPTION_REG
     bcf	    OPTION_REG, 7   ; bcf = bit clear --> ACTIVO LOS PULLUPS DEL PORTB
     
-    banksel WPUB
+    banksel WPUB	    ; Establezco que PIN 0 y PIN 1, PORTB serán entradas digitales (PUSHBUTTON)
     bsf	    WPUB, UP	    ; ENCIENDO EL PULLUP DEL PORTB --> WPUB = Weak Pull-up Register bit, con BSF = LO ENCIENDO EN 1.
     bsf	    WPUB, DOWN	    ; ENCIENDO EL PULLUP DEL PORTB --> WPUB = Weak Pull-up Register bit, con BSF = LO ENCIENDO EN 1.
     
     // SEGUNDO CONTADOR, INDEPENDIENTE DEL PRIMERO --> DURANTE EL LAB
     // SALIDA DIGITAL - BANCO C - 1er 7 SEGMENTOS
-    banksel TRISC
-    clrf    TRISC
+    banksel TRISC	    ; Me cambio de banco al PORTC
+    clrf    TRISC	    ; Limpio el banco -> Lo defino como salida digital.
     
     // SALIDA DIGITAL - BANCO D - 2do 7 SEGMENTOS
-    banksel TRISD
-    clrf    TRISD
+    banksel TRISD	    ; Me cambio de banco.
+    clrf    TRISD	    ; Defino el PORTD como salida digital
     
-    banksel PORTA
+    banksel PORTA	    ; Hago una limpieza de bancos --> LIMPIO TODOS MIS PUERTOS
     clrf    PORTA
     clrf    PORTB
     clrf    PORTC
@@ -240,28 +239,28 @@ values:
    //UTILIZO RELOJ INTERNO CON UNA FRECUENCIA DE 2MHz (101).
  
  config_tmr0:
-    banksel OPTION_REG
+    banksel OPTION_REG	; Nos camviamos de banco.
     bcf T0CS	 ; HABILITO EL RELOJ INTERNO --> COMO TEMPORIZADOR
     bcf PSA	 ; ASIGNO PRESCALER AL TMR0 --> PRESCALER = 256 BSF
-    bsf PS2
+    bsf PS2	 
     bsf PS1
     bsf PS0      ; CORRESPONDE AL PRESCALER 1:256
     
-    reset_tmr0
+    reset_tmr0	 ; Aplico el MACRO generado al principio del código.
     return
  ;----------------------CONFIGURACION INTERRUPCIONES -----------------------------
- enable_ints:	    ; habilitar interrupciones
+ enable_interruptions:	    ; Habilito las interrupciones - configuracion.
     banksel INTCON
-    bsf	    GIE		    ; habilitar interrupciones globales --> activiacion vital
-    bsf	    RBIE	    ; habilitar interrupciones de puerto b
-    bcf	    RBIF	    ; limpiar bandera de puerto b
-    bsf	    T0IE	    ; bsf = bit set = habilitar interrupciones de tmr0
-    bcf	    T0IF	    ; limpiar bandera de tmr0
+    bsf	    GIE		    ; Habilito interrupciones globales, con este mando. ACTIVACION Y USO VITAL.
+    bsf	    RBIE	    ; Habilito interrupciones de cambio de estado, del PORTB.
+    bcf	    RBIF	    ; Limpio la bandera de cambio de estado del PORTB.
+    bsf	    T0IE	    ; bsf = bit set = habilito interrupciones de tmr0
+    bcf	    T0IF	    ; Bandera de interrupcion del tmr0.
     return
  
- config_iocrb:		    ; configurar pines de interrupcion
-    banksel TRISA
-    bsf	    IOCB, UP	    ; activar interrupcion al cambio en pin 0 de puertob
+ config_iocrb:		    ; Configuro los pines de interrupcion
+    banksel TRISA	    ; Me cambio de puerto al PORTA.
+    bsf	    IOCB, UP	    ; Activo la interrupcion al cambio de estado en para el PIN 0 y PIN 1 del PORTB
     bsf	    IOCB, DOWN	    ; activar interrupcion al cambio en pin 7 de puertob
     
     banksel PORTA	
