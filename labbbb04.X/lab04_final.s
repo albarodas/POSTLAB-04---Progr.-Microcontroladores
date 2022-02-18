@@ -70,7 +70,7 @@
     // w = 'working register' (accumulador).
  ISR:
     btfsc   T0IF
-    call    cont_tmr0
+    call    counter_tmr0
     btfsc   RBIF	; Hay salto, si la bandera de cambio de 'B' está en cero. 
 			; El RBIF bit se limpia co RESET, pero se reestablece, si hay un 'mismatch'.
 			; mismatch exists.
@@ -105,7 +105,7 @@ Change Interrupt flag bit (RBIF) in the INTCON register.*/
     bcf	    RBIF	; LIMPIO LA BANDERA, AL TERMINAR CON LA INTERRUPCIÓN.
     return
  
- cont_tmr0:
+ counter_tmr0:
     reset_tmr0
     incf    counter	; INCREMENTO EL COUNTER DE 20ms
     movf    counter, W	; MUEVO LA INFORMACIÓN DEL 'COUNTER' A 'W'
@@ -178,15 +178,10 @@ values:
     call config_tmr0
     call enable_ints
     call config_iocrb
-    
-    
-    //banksel PORTA
-    
+
  ;-------------loop principal-----------------
  loop:
     //POR EL MOMENTO NO HAY ACCIONES QUE DEBAN REPETIRSE, SOLO CONFIGURACIONES.
-   // call    variable_display_1s  ; CONVIERTO valor de tabla a display de 1 seg
-   // call    variable_display_10s ; CONVIERTO valor de tabla a display de 10 seg
     goto    loop
  ;------------sub rutinas--------------------
  
@@ -213,13 +208,14 @@ values:
     bcf	    OPTION_REG, 7   ; bcf = bit clear --> ACTIVO LOS PULLUPS DEL PORTB
     
     banksel WPUB
-    bsf	    WPUB, UP	    ; ENCIENDO EL PULLUP DEL PORTB EN 0 = ACTIVADO, EN 1 = DESACTIVADO --> WPUB = Weak Pull-up Register bit, con BSF = LO ENCIENDO EN 1.
-    bsf	    WPUB, DOWN	    ; ENCIENDO EL PULLUP DEL PORTB EN 0 = ACTIVADO, EN 1 = DESACTIVADO --> WPUB = Weak Pull-up Register bit, con BSF = LO ENCIENDO EN 1.
+    bsf	    WPUB, UP	    ; ENCIENDO EL PULLUP DEL PORTB --> WPUB = Weak Pull-up Register bit, con BSF = LO ENCIENDO EN 1.
+    bsf	    WPUB, DOWN	    ; ENCIENDO EL PULLUP DEL PORTB --> WPUB = Weak Pull-up Register bit, con BSF = LO ENCIENDO EN 1.
     
     // SEGUNDO CONTADOR, INDEPENDIENTE DEL PRIMERO --> DURANTE EL LAB
     // SALIDA DIGITAL - BANCO C - 1er 7 SEGMENTOS
     banksel TRISC
     clrf    TRISC
+    
     // SALIDA DIGITAL - BANCO D - 2do 7 SEGMENTOS
     banksel TRISD
     clrf    TRISD
@@ -245,15 +241,15 @@ values:
  
  config_tmr0:
     banksel OPTION_REG
-    bcf T0CS	 ;reloj interno --> COMO TEMPORIZADOR
+    bcf T0CS	 ; HABILITO EL RELOJ INTERNO --> COMO TEMPORIZADOR
     bcf PSA	 ; ASIGNO PRESCALER AL TMR0 --> PRESCALER = 256 BSF
     bsf PS2
     bsf PS1
-    bsf PS0      ;prescaler 1:256
+    bsf PS0      ; CORRESPONDE AL PRESCALER 1:256
     
     reset_tmr0
     return
- ;---------------------- config interrupciones -----------------------------
+ ;----------------------CONFIGURACION INTERRUPCIONES -----------------------------
  enable_ints:	    ; habilitar interrupciones
     banksel INTCON
     bsf	    GIE		    ; habilitar interrupciones globales --> activiacion vital
